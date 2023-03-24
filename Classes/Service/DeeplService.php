@@ -22,6 +22,8 @@ class DeeplService
 
     public string $apiUrl;
 
+    public string $model;
+
     public string $deeplFormality;
 
     /**
@@ -60,6 +62,7 @@ class DeeplService
         $extensionConfiguration = GeneralUtility::makeInstance(ExtensionConfiguration::class)->get('wv_deepltranslate');
         $this->apiUrl = $extensionConfiguration['apiUrl'];
         $this->apiKey = $extensionConfiguration['apiKey'];
+        $this->model = $extensionConfiguration['model'];
         $this->deeplFormality = $extensionConfiguration['deeplFormality'];
 
         $this->loadSupportedLanguages();
@@ -68,44 +71,27 @@ class DeeplService
 
     /**
      * Deepl Api Call for retrieving translation.
-     * @return array
      */
-    public function translateRequest($content, $targetLanguage, $sourceLanguage): array
+    public function translateRequest($content, $targetLanguage): string
     {
-        $postFields = [
-            'auth_key'     => $this->apiKey,
-            'text'         => $content,
-            'source_lang'  => urlencode($sourceLanguage),
-            'target_lang'  => urlencode($targetLanguage),
-            'tag_handling' => urlencode('xml'),
+        $content = "Translate the following text to {$this->deeplFormality} {$targetLanguage} as if it was written by a native speaker, keep all HTML tags: {$content}";
+        $body = [
+            'model' => $this->model,
+            'messages' => [
+                [
+                    'role' => 'user',
+                    'content' => $content,
+                ]
+            ]
         ];
-
-        // Implementation of glossary into translation
-        $glossaryId = $this->glossaryRepository->getGlossaryBySourceAndTarget($sourceLanguage, $targetLanguage);
-
-        if (!empty($glossaryId)) {
-            $postFields['glossary_id'] = $glossaryId;
-        }
-
-        if (!empty($this->deeplFormality) && in_array(strtoupper($targetLanguage), $this->formalitySupportedLanguages, true)) {
-            $postFields['formality'] = $this->deeplFormality;
-        }
-        //url-ify the data to get content length
-        $postFieldString = '';
-        foreach ($postFields as $key => $value) {
-            $postFieldString .= $key . '=' . $value . '&';
-        }
-
-        $postFieldString = rtrim($postFieldString, '&');
-        $contentLength = mb_strlen($postFieldString, '8bit');
 
         try {
             $response = $this->requestFactory->request($this->apiUrl, 'POST', [
-                'form_params' => $postFields,
                 'headers'     => [
-                    'Content-Type' => 'application/x-www-form-urlencoded',
-                    'Content-Length' => $contentLength,
+                    'Content-Type' => 'application/json',
+                    'Authorization' => 'Bearer ' . $this->apiKey,
                 ],
+                'body' => json_encode($body),
             ]);
         } catch (ClientException $e) {
             $flashMessage = GeneralUtility::makeInstance(
@@ -120,7 +106,9 @@ class DeeplService
             return [];
         }
 
-        return json_decode($response->getBody()->getContents(), true);
+        $response = json_decode($response->getBody()->getContents(), true);
+
+        return $response['choices'][0]['message']['content'];
     }
 
     private function loadSupportedLanguages(): void

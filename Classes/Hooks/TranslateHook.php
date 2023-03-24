@@ -134,38 +134,9 @@ class TranslateHook
         array $sourceLanguageRecord
     ): string {
 
-        // mode deepl
-        if ($customMode == 'deepl') {
-            $response = $this->deeplService->translateRequest(
-                $content,
-                $targetLanguageRecord['language_isocode'],
-                $sourceLanguageRecord['language_isocode']
-            );
-
-            if (!empty($response) && isset($response['translations'])) {
-                foreach ($response['translations'] as $translation) {
-                    if ($translation['text'] != '') {
-                        $content = $translation['text'];
-                        break;
-                    }
-                }
-            }
-        } //mode google
-        elseif ($customMode == 'google') {
-            $response = $this->googleService->translate(
-                $targetLanguageRecord['language_isocode'],
-                $targetLanguageRecord['language_isocode'],
-                $content
-            );
-
-            if (!empty($response)) {
-                if (HtmlUtility::isHtml($response)) {
-                    $content = preg_replace('/\/\s/', '/', $response);
-                    $content = preg_replace('/\>\s+/', '>', $content);
-                }
-            }
-        }
-
-        return $content;
+        return $this->deeplService->translateRequest(
+            $content,
+            $targetLanguageRecord['locale']
+        );
     }
 }

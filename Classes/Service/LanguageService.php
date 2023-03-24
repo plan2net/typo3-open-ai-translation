@@ -77,101 +77,44 @@ class LanguageService
             'language_isocode' => strtoupper($currentSite->getDefaultLanguage()->getTwoLetterIsoCode()),
         ];
 
-        if (!in_array(
-            $sourceLanguageRecord['language_isocode'],
-            $this->deeplService->apiSupportedLanguages['source']
-        )) {
-            throw new LanguageIsoCodeNotFoundException(
-                sprintf(
-                    'No API supported target found for language "%s"',
-                    $sourceLanguageRecord['title']
-                ),
-                1676741965
-            );
-        }
-
         return $sourceLanguageRecord;
     }
 
     /**
-     * @return array{uid: int, title: string, language_isocode: string}
+     * @return array{uid: int, title: string, locale: string}
      * @throws LanguageRecordNotFoundException
-     * @throws LanguageIsoCodeNotFoundException
      */
     public function getTargetLanguage(Site $currentSite, int $languageId): array
     {
-        if ($this->siteLanguageMode) {
-            $languages = array_filter($currentSite->getConfiguration()['languages'], function ($value) use ($languageId) {
-                if (!is_array($value)) {
-                    return false;
-                }
-
-                if ((int)$value['languageId'] === $languageId) {
-                    return true;
-                }
-
+        $languages = array_filter($currentSite->getConfiguration()['languages'], function ($value) use ($languageId) {
+            if (!is_array($value)) {
                 return false;
-            });
-
-            if (count($languages) === 0) {
-                throw new LanguageRecordNotFoundException(
-                    sprintf(
-                        'Language "%d" not found in SiteConfig "%s"',
-                        $languageId,
-                        $currentSite->getConfiguration()['websiteTitle']
-                    ),
-                    1676824459
-                );
-            }
-            $language = reset($languages);
-            $languageIsoCode = null;
-
-            foreach ($this->possibleLangMatches as $possibleLangMatch) {
-                if (array_key_exists($possibleLangMatch, $language)
-                    && in_array(
-                        strtoupper($language[$possibleLangMatch]),
-                        $this->deeplService->apiSupportedLanguages['target']
-                    )
-                ) {
-                    $languageIsoCode = strtoupper($language[$possibleLangMatch]);
-                    break;
-                }
-            }
-            if ($languageIsoCode === null) {
-                throw new LanguageIsoCodeNotFoundException(
-                    sprintf(
-                        'No API supported target found for language "%s" in site "%s"',
-                        $language['title'],
-                        $currentSite->getConfiguration()['websiteTitle']
-                    ),
-                    1676741837
-                );
             }
 
-            return [
-                'uid' => $language['languageId'] ?? 0,
-                'title' => $language['title'],
-                'language_isocode' => $languageIsoCode,
-            ];
-        }
+            if ((int)$value['languageId'] === $languageId) {
+                return true;
+            }
 
-        // v9 and v10 sys_language_uid goes from here
-        /** @deprecated will be removed in version 4 */
-        $targetLanguageRecord = $this->getRecordFromSysLanguage($languageId);
+            return false;
+        });
 
-        $targetLanguageMapping = $this->settingsRepository->getMappings($targetLanguageRecord['uid']);
-        if ($targetLanguageMapping === '') {
-            throw new LanguageIsoCodeNotFoundException(
+        if (count($languages) === 0) {
+            throw new LanguageRecordNotFoundException(
                 sprintf(
-                    'No API supported target found for language "%s"',
-                    $targetLanguageRecord['title']
+                    'Language "%d" not found in SiteConfig "%s"',
+                    $languageId,
+                    $currentSite->getConfiguration()['websiteTitle']
                 ),
-                1676741846
+                1676824459
             );
         }
-        $targetLanguageRecord['language_isocode'] = strtoupper($targetLanguageMapping);
+        $language = reset($languages);
 
-        return $targetLanguageRecord;
+        return [
+            'uid' => $language['languageId'] ?? 0,
+            'title' => $language['title'],
+            'locale' => $language['locale'],
+        ];
     }
 
     /**
