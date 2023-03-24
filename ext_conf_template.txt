@@ -11,3 +11,6 @@ googleapiUrl = https://translation.googleapis.com/language/translate/v2
 
 # cat=Settings/0; type=boolean; label=Activate old backend module
 activateBackendModule = 0
+
+# cat=Settings/0; type=options[gpt-3.5-turbo,gpt-4]; label=ChatGPT Model
+model = gpt-3.5-turbo
