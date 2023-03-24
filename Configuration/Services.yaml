@@ -8,22 +8,10 @@ services:
     resource: '../Classes/*'
     exclude: '../Classes/{Domain/Model,Override/DatabaseRecordList.php,Override/v10/DatabaseRecordList.php}'
 
-  WebVision\WvDeepltranslate\Command\GlossariesEntriesCleanupCommand:
+  WebVision\WvDeepltranslate\Command\ModelTrainingDataExportCommand:
     tags:
       - name: 'console.command'
-        command: 'deepl:glossary:cleanup'
-        schedulable: true
-
-  WebVision\WvDeepltranslate\Command\GlossariesEntriesListCommand:
-    tags:
-      - name: 'console.command'
-        command: 'deepl:glossary:list'
-        schedulable: false
-
-  WebVision\WvDeepltranslate\Command\GlossarySyncCommand:
-    tags:
-      - name: 'console.command'
-        command: 'deepl:glossary:sync'
+        command: 'openai:export:data'
         schedulable: true
 
   WebVision\WvDeepltranslate\Service\DeeplService:
